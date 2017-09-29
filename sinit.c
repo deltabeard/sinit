@@ -27,61 +27,65 @@ static struct {
 
 static sigset_t set;
 
-int
-main(void)
+int main(void)
 {
 	int sig;
 	size_t i;
 
-	if (getpid() != 1)
+	if(getpid() != 1)
 		return 1;
+
 	chdir("/");
 	sigfillset(&set);
 	sigprocmask(SIG_BLOCK, &set, NULL);
 	spawn(rcinitcmd);
-	while (1) {
+
+	while(1)
+	{
 		sigwait(&set, &sig);
-		for (i = 0; i < LEN(sigmap); i++) {
-			if (sigmap[i].sig == sig) {
+
+		for (i = 0; i < LEN(sigmap); i++)
+		{
+			if (sigmap[i].sig == sig)
+			{
 				sigmap[i].handler();
 				break;
 			}
 		}
 	}
+
 	/* not reachable */
 	return 0;
 }
 
-static void
-sigpoweroff(void)
+static void sigpoweroff(void)
 {
 	spawn(rcpoweroffcmd);
 }
 
-static void
-sigreap(void)
+static void sigreap(void)
 {
 	while (waitpid(-1, NULL, WNOHANG) > 0)
 		;
 }
 
-static void
-sigreboot(void)
+static void sigreboot(void)
 {
 	spawn(rcrebootcmd);
 }
 
-static void
-spawn(char *const argv[])
+static void spawn(char *const argv[])
 {
-	switch (fork()) {
-	case 0:
-		sigprocmask(SIG_UNBLOCK, &set, NULL);
-		setsid();
-		execvp(argv[0], argv);
-		perror("execvp");
-		_exit(1);
-	case -1:
-		perror("fork");
+	switch(fork())
+	{
+		case 0:
+			sigprocmask(SIG_UNBLOCK, &set, NULL);
+			setsid();
+			execvp(argv[0], argv);
+			perror("execvp");
+			_exit(1);
+
+		case -1:
+			perror("fork");
 	}
 }
