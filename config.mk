@@ -8,5 +8,5 @@ MANPREFIX = $(PREFIX)/share/man
 CC = cc
 LD = $(CC)
 CPPFLAGS =
-CFLAGS   = -Wextra -Wall -Os
-LDFLAGS  = -s -static
+CFLAGS   = -Wextra -Wall -Ofast
+LDFLAGS  = -s

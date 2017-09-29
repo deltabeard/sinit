@@ -1,4 +1,5 @@
 /* See LICENSE file for copyright and license details. */
+#include <sys/reboot.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -49,7 +50,7 @@ int main(void)
 	sigprocmask(SIG_BLOCK, &set, NULL);
 
 	/* Perform init tasks here */
-	spawn(rcinitcmd);
+	spawn(retroarch);
 
 	/* Handle signals */
 	while(1)
@@ -75,12 +76,16 @@ int main(void)
  */
 static void sigpoweroff(void)
 {
-	spawn(rcpoweroffcmd);
+	/* Any tasks to be done on power off should be performed here. */
+	sync();
+	reboot(RB_POWER_OFF);
 }
 
 static void sigreboot(void)
 {
-	spawn(rcrebootcmd);
+	/* Any tasks to be done on power off should be performed here. */
+	sync();
+	reboot(RB_AUTOBOOT);
 }
 
 /**
@@ -97,8 +102,30 @@ static void spawn(char *const argv[])
 	switch(fork())
 	{
 		case 0:
-			sigprocmask(SIG_UNBLOCK, &set, NULL);
-			setsid();
+			if(sigprocmask(SIG_UNBLOCK, &set, NULL) != 0)
+			{
+				perror("sigprocmask");
+				return;
+			}
+
+			if(setsid() < 0)
+			{
+				perror("setsid");
+				return;
+			}
+
+			if(setgid(100) != 0)
+			{
+				perror("setgid");
+				return;
+			}
+
+			if(setuid(1000) != 0)
+			{
+				perror("setuid");
+				return;
+			}
+
 			execvp(argv[0], argv);
 			perror("execvp");
 			_exit(1);
