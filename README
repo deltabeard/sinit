@@ -15,7 +15,7 @@ How?
 There are 3 signals that sinit will act on.
 
       SIGUSR1: powers off the machine.
-      SIGINT:  reboots the machine (or alternatively via ctrl-alt-del).
+      SIGHUP:  reboots the machine (or alternatively via ctrl-alt-del).
       SIGCHLD: reap children
 
 To see how sinit integrates with the init scripts, then have
