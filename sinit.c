@@ -10,17 +10,25 @@
 #define LEN(x) (sizeof (x) / sizeof *(x))
 
 static void sigpoweroff(void);
-static void sigreap(void);
 static void sigreboot(void);
+static void sigreap(void);
 static void spawn(char *const []);
 
 static struct {
 	int sig;
 	void (*handler)(void);
 } sigmap[] = {
+	/** 
+	 * When reboot() is called from a process that isn't init, SIGINT signal is
+	 * sent to init for LINUX_REBOOT_CMD_POWER_OFF  and LINUX_REBOOT_CMD_HALT.
+	 */
 	{ SIGUSR1, sigpoweroff },
+	/** 
+	 * When reboot() is called from a process that isn't init, SIGHUP signal is
+	 * sent to init for LINUX_REBOOT_CMD_RESTART and LINUX_REBOOT_CMD_RESTART2.
+	 */
+	{ SIGHUP,  sigreboot   },
 	{ SIGCHLD, sigreap     },
-	{ SIGINT,  sigreboot   },
 };
 
 #include "config.h"
@@ -32,14 +40,18 @@ int main(void)
 	int sig;
 	size_t i;
 
+	/* Check if we're init */
 	if(getpid() != 1)
 		return 1;
 
 	chdir("/");
 	sigfillset(&set);
 	sigprocmask(SIG_BLOCK, &set, NULL);
+
+	/* Perform init tasks here */
 	spawn(rcinitcmd);
 
+	/* Handle signals */
 	while(1)
 	{
 		sigwait(&set, &sig);
@@ -58,20 +70,26 @@ int main(void)
 	return 0;
 }
 
+/**
+ * Power off.
+ */
 static void sigpoweroff(void)
 {
 	spawn(rcpoweroffcmd);
 }
 
-static void sigreap(void)
-{
-	while (waitpid(-1, NULL, WNOHANG) > 0)
-		;
-}
-
 static void sigreboot(void)
 {
 	spawn(rcrebootcmd);
+}
+
+/**
+ * Remove zombie processes.
+ */
+static void sigreap(void)
+{
+	while(waitpid(-1, NULL, WNOHANG) > 0)
+		;
 }
 
 static void spawn(char *const argv[])
